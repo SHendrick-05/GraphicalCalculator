@@ -28,7 +28,10 @@ namespace GraphicalCalculator
             {"sqrt", x => Math.Sqrt(x)},
             {"sinh", x => Math.Sinh(x)},
             {"cosh", x => Math.Cosh(x)},
-            {"tanh", x => Math.Tanh(x)}
+            {"tanh", x => Math.Tanh(x)},
+            {"ln", x => Math.Log(x)},
+            {"floor", x => Math.Floor(x)},
+            {"ceil", x => Math.Ceiling(x)}
         };
 
         internal static double EvaluateFunction(List<string> function, double x)
@@ -180,6 +183,14 @@ namespace GraphicalCalculator
             foreach (char op in "+-*/()^")
             {
                 result = result.Replace(op.ToString(), $" {op} ");
+            }
+            foreach(string func in functions.Keys)
+            {
+                for(int i = result.IndexOf(func); i > -1; i = result.IndexOf(func, i + 1))
+                {
+                    result = result.Remove(i + 1, func.Length - 1);
+                    result = replaceConst(result, func, i);
+                }
             }
             // Format for constants
             for (int i = result.Length - 1; i >= 0; i--)

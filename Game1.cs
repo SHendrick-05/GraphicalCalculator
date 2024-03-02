@@ -111,7 +111,17 @@ namespace GraphicalCalculator
 
             _spriteBatch.Begin();
 
-            
+            // Draw border
+            Vector2 TL = new Vector2(buffer, buffer);
+            Vector2 TR = new Vector2(buffer + _width, buffer);
+            Vector2 BL = new Vector2(buffer, buffer + _height);
+            Vector2 BR = new Vector2(buffer + _width, buffer + _height);
+
+            DrawLine(TL, TR, Color.Black);
+            DrawLine(TR, BR, Color.Black);
+            DrawLine(BR, BL, Color.Black);
+            DrawLine(BL, TL, Color.Black);
+
 
             // Draw graph
             for(int i = 1; i < pointsToDraw.Count; i++)
@@ -119,7 +129,7 @@ namespace GraphicalCalculator
                 Vector2 start = pointsToDraw[i - 1];
                 Vector2 end = pointsToDraw[i];
                 if (end.X - start.X == 1)
-                    DrawLine(start, end);
+                    DrawLine(start, end, Color.White);
             }
 
             _spriteBatch.End();
@@ -127,13 +137,13 @@ namespace GraphicalCalculator
             base.Draw(gameTime);
         }
 
-        internal void DrawLine(Vector2 start, Vector2 end)
+        internal void DrawLine(Vector2 start, Vector2 end, Color color)
         {
             _spriteBatch.Draw(
                 rectangle,
                 start,
                 null,
-                Color.White,
+                color,
                 (float)Math.Atan2(end.Y - start.Y, end.X - start.X), // Get the gradient of the line.
                 new Vector2(0f, (float)rectangle.Height / 2),        // Rotate around the centre of the line.
                 new Vector2(Vector2.Distance(start, end), 1f),       // Scale the line to the distance between the two points.

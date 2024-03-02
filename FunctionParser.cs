@@ -31,8 +31,19 @@ namespace GraphicalCalculator
             {"tanh", x => Math.Tanh(x)},
             {"ln", x => Math.Log(x)},
             {"floor", x => Math.Floor(x)},
-            {"ceil", x => Math.Ceiling(x)}
+            {"ceil", x => Math.Ceiling(x)},
+            {"abs", x => Math.Abs(x)}
         };
+
+        internal static Dictionary<string, Func<double, double, double>> binaryOperators = new Dictionary<string, Func<double, double, double>>()
+        {
+            {"+", (a, b) => a + b },
+            {"-", (a, b) => a - b },
+            {"*", (a, b) => a * b },
+            {"/", (a, b) => a / b },
+            {"^", (a, b) => Math.Pow(a, b) }
+        };
+
 
         internal static double EvaluateFunction(List<string> function, double x)
         {
@@ -57,27 +68,8 @@ namespace GraphicalCalculator
                 {
                     double b = (double)evalStack.Pop();
                     double a = (double)evalStack.Pop();
-                    switch (token)
-                    {
-                        case "+":
-                            evalStack.Push(a + b);
-                            break;
-                        case "-":
-                            evalStack.Push(a - b);
-                            break;
-                        case "*":
-                            evalStack.Push(a * b);
-                            break;
-                        case "/":
-                            evalStack.Push(a / b);
-                            break;
-                        case "^":
-                            evalStack.Push(Math.Pow(a, b));
-                            break;
-                        default:
-                            throw new Exception();
+                    evalStack.Push(binaryOperators[token](a, b));
 
-                    }
                 }
             }
             return (double)evalStack.Pop();
@@ -143,7 +135,7 @@ namespace GraphicalCalculator
                     }
                     Debug.Assert(operatorStack.Peek().ToString() == "(");
                     operatorStack.Pop();
-                    if (!"+-*/()".Contains(operatorStack.Peek().ToString()))
+                    if (!binaryOperators.ContainsKey(operatorStack.Peek().ToString()))
                     {
                         outputQueue.Enqueue(operatorStack.Pop());
                     }
@@ -160,13 +152,13 @@ namespace GraphicalCalculator
             return outputQueue;
         }
 
-        internal static string replaceConst(string baseStr, string toReplace, int index)
+        internal static string replaceConst(string baseStr, string toReplace, int index, bool func = false)
         {
-            if (index > 0 && baseStr[index - 1] != ' ')
+            if (index > 0 && !"( ".Contains(baseStr[index - 1]))
             {
                 toReplace = " * " + toReplace;
             }
-            if (index < baseStr.Length - 1 && baseStr[index + 1] != ' ')
+            if (!func && index < baseStr.Length - 1 && !") ".Contains(baseStr[index + 1]))
             {
                 toReplace += " * ";
             }
@@ -189,7 +181,7 @@ namespace GraphicalCalculator
                 for(int i = result.IndexOf(func); i > -1; i = result.IndexOf(func, i + 1))
                 {
                     result = result.Remove(i + 1, func.Length - 1);
-                    result = replaceConst(result, func, i);
+                    result = replaceConst(result, func, i, true);
                 }
             }
             // Format for constants

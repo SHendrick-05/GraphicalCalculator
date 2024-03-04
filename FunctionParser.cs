@@ -86,6 +86,7 @@ namespace GraphicalCalculator
             for (int i = 0; i < tokens.Length; i++)
             {
                 string token = tokens[i];
+
                 // Check if numbers
                 if (token == "x")
                 {
@@ -135,7 +136,7 @@ namespace GraphicalCalculator
                     }
                     Debug.Assert(operatorStack.Peek().ToString() == "(");
                     operatorStack.Pop();
-                    if (!binaryOperators.ContainsKey(operatorStack.Peek().ToString()))
+                    if (operatorStack.Count > 0 && !binaryOperators.ContainsKey(operatorStack.Peek().ToString()))
                     {
                         outputQueue.Enqueue(operatorStack.Pop());
                     }
@@ -205,7 +206,7 @@ namespace GraphicalCalculator
                 }
             }
 
-            return result.Split(' ');
+            return result.Split(' ').Where(x => !string.IsNullOrWhiteSpace(x)).ToArray();
         }
     }
 }

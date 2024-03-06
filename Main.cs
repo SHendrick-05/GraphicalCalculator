@@ -20,13 +20,25 @@ namespace GraphicalCalculator
 
         private void graphButton_Click(object sender, EventArgs e)
         {
-            Thread graphThread = new Thread(() => startGraph(functionBox.Text));
+            if (!string.IsNullOrWhiteSpace(functionBox.Text)
+                && double.TryParse(minXBox.Text, out double xMin)
+                && double.TryParse(maxXBox.Text, out double xMax)
+                && double.TryParse(minYBox.Text, out double yMin)
+                && double.TryParse(maxYBox.Text, out double yMax))
+            {
+                initStart(functionBox.Text, xMin, xMax, yMin, yMax);
+            }
+        }
+
+        private void initStart(string funcText, double xMin, double xMax, double yMin, double yMax)
+        {
+            Thread graphThread = new Thread(() => startGraph(funcText, xMin, xMax, yMin, yMax));
             graphThread.Start();
         }
 
-        private void startGraph(string func)
+        private void startGraph(string func, double xMin, double xMax, double yMin, double yMax)
         {
-            using var game = new GraphicalCalculator.Game1(func);
+            using var game = new Game1(func, xMin, xMax, yMin, yMax);
             game.Run();
         }
     }

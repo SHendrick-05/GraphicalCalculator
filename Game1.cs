@@ -30,6 +30,8 @@ namespace GraphicalCalculator
         private bool useMajorDivions;
         private bool useMinorDivions;
 
+        private double increaseXPerPixel;
+
         private int _width;
         private int _height;
 
@@ -38,20 +40,31 @@ namespace GraphicalCalculator
         private List<Vector2> points;
         private List<Vector2> pointsToDraw;
 
-        private List<string> function;
 
         private SpriteFont font;
 
 
-        public Game1(string functionText)
+        public Game1(string functionText, double xMin, double xMax, double yMin, double yMax)
         {
+            // Parse function
             Queue q = FunctionParser.ShuntingYard(functionText);
-            function = new List<string>();
+            List<string> function = new List<string>();
 
             while (q.Count > 0)
             {
                 function.Add(q.Dequeue().ToString());
             }
+
+            Functions.function = function;
+
+            // Change variables
+            minX = xMin;
+            maxX = xMax;
+
+            minY = yMin;
+            maxY = yMax;
+
+            
 
             _graphics = new GraphicsDeviceManager(this);
             Content.RootDirectory = "Content";
@@ -65,17 +78,13 @@ namespace GraphicalCalculator
             _width = _graphics.PreferredBackBufferWidth - (2 * buffer);
             _height = _graphics.PreferredBackBufferHeight - (2 * buffer);
 
-            minX = -5;
-            minY = -5;
-
-            maxX = 5;
-            maxY = 5;
-
             rangeY = maxY - minY;
             rangeX = maxX - minX;
 
+            increaseXPerPixel = rangeX / _width;
+
             useMajorDivions = true;
-            useMinorDivions = false;
+            useMinorDivions = true;
 
             majorDivision = 1;
             minorDivision = 0.5;
@@ -89,17 +98,8 @@ namespace GraphicalCalculator
         {
             _spriteBatch = new SpriteBatch(GraphicsDevice);
 
-            double Xperpixel = rangeX / _width;
-            int pixels = 0;
 
-            for(int xPixel = 0; xPixel < _width; xPixel++)
-            {
-                double x = minX + Xperpixel * xPixel;
-                double y = FunctionParser.EvaluateFunction(function, x);
-                points.Add(new Vector2(buffer + pixels++, (float)convertPointY(y)));
-            }
-
-            pointsToDraw = points.Where(pt => pt.Y > buffer && pt.Y < (_height + buffer)).ToList();
+            updateFunction();
 
             rectangle = new Texture2D(GraphicsDevice, 1, 1);
             rectangle.SetData(new[] { Color.White });
@@ -112,6 +112,45 @@ namespace GraphicalCalculator
             if (GamePad.GetState(PlayerIndex.One).Buttons.Back == ButtonState.Pressed || Keyboard.GetState().IsKeyDown(Keys.Escape))
                 Exit();
 
+            Input.Update();
+
+
+            // Positive = zoom in
+            int scrollDifference = Input.mouseState.ScrollWheelValue - Input.prevMouseState.ScrollWheelValue;
+            int tickDiff = scrollDifference / 120;
+
+            if (tickDiff != 0)
+            {
+
+                double multiplier = tickDiff > 0 ? Math.Pow(0.9, tickDiff) : Math.Pow(1.1, -1 * tickDiff);
+
+                minX *= multiplier;
+                maxX *= multiplier;
+
+                minY *= multiplier;
+                maxY *= multiplier;
+
+                rangeY = maxY - minY;
+                rangeX = maxX - minX;
+
+                increaseXPerPixel = rangeX / _width;
+
+                if (Math.Min(majorDivision / rangeX, majorDivision / rangeY) < 1d / 20)
+                {
+                    minorDivision = majorDivision;
+                    majorDivision *= 2;
+                }
+
+                if (Math.Max(majorDivision / rangeX, majorDivision / rangeY) > 1d / 2)
+                {
+                    majorDivision = minorDivision;
+                    minorDivision /= 2;
+                }
+
+
+                updateFunction();
+            }
+            
 
             base.Update(gameTime);
         }
@@ -172,6 +211,7 @@ namespace GraphicalCalculator
                     DrawLine(startPos, endPos, Color.Gray);
                 }
 
+                
                 // Major divisions (Y)
                 double startYDiv = Math.Floor(minY / majorDivision) * majorDivision;
                 for (double i = startYDiv; i < maxY; i += majorDivision)
@@ -185,6 +225,34 @@ namespace GraphicalCalculator
                 }
             }
 
+            if (useMinorDivions)
+            {
+                // X
+                double startXDiv = Math.Floor(minX / minorDivision) * minorDivision;
+                for (double i = startXDiv; i < maxX; i += minorDivision)
+                {
+                    if (i == minX || i == 0) continue;
+
+                    float coord = (float)convertPointX(i);
+                    Vector2 startPos = new Vector2(coord, buffer);
+                    Vector2 endPos = new Vector2(coord, buffer + _height);
+                    DrawLine(startPos, endPos, Color.Gray * 0.25f);
+                }
+
+
+                // Y
+                double startYDiv = Math.Floor(minY / minorDivision) * minorDivision;
+                for (double i = startYDiv; i < maxY; i += minorDivision)
+                {
+                    if (i == minY || i == 0) continue;
+
+                    float coord = (float)convertPointY(i);
+                    Vector2 startPos = new Vector2(buffer, coord);
+                    Vector2 endPos = new Vector2(buffer + _width, coord);
+                    DrawLine(startPos, endPos, Color.Gray * 0.25f);
+                }
+            }
+
 
             // Draw graph
             for (int i = 1; i < pointsToDraw.Count; i++)
@@ -194,6 +262,8 @@ namespace GraphicalCalculator
                 if (end.X - start.X == 1)
                     DrawLine(start, end, Color.White);
             }
+
+            _spriteBatch.DrawString(font, Input.mouseState.ScrollWheelValue.ToString(), Vector2.Zero, Color.White);
 
             _spriteBatch.End();
 
@@ -225,6 +295,24 @@ namespace GraphicalCalculator
             double proportion = (x - minX) / rangeX;
 
             return buffer + proportion * _width;
+        }
+
+        internal List<Vector2> mathPointsToDrawingPoints(Dictionary<double, double> mathPoints)
+        {
+            List<Vector2> result = new List<Vector2>();
+            foreach(double x in mathPoints.Keys)
+            {
+                double y = mathPoints[x];
+                result.Add(new Vector2((float)convertPointX(x), (float)convertPointY(y)));
+            }
+            return result;
+        }
+
+        internal void updateFunction()
+        {
+            var mathPoints = Functions.updatePoints(minX, maxX, increaseXPerPixel);
+            points = mathPointsToDrawingPoints(mathPoints);
+            pointsToDraw = points.Where(pt => pt.Y > buffer && pt.Y < (_height + buffer)).ToList();
         }
     }
 }

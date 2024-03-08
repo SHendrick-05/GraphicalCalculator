@@ -21,6 +21,9 @@ namespace GraphicalCalculator
         private double minX;
         private double maxX;
 
+        private double centerX;
+        private double centerY;
+
         private double rangeX;
         private double rangeY;
 
@@ -31,6 +34,7 @@ namespace GraphicalCalculator
         private bool useMinorDivions;
 
         private double increaseXPerPixel;
+        private double zoomChangeFocusFactor;
 
         private int _width;
         private int _height;
@@ -64,7 +68,7 @@ namespace GraphicalCalculator
             minY = yMin;
             maxY = yMax;
 
-            
+            zoomChangeFocusFactor = 1d / 3d;
 
             _graphics = new GraphicsDeviceManager(this);
             Content.RootDirectory = "Content";
@@ -80,6 +84,9 @@ namespace GraphicalCalculator
 
             rangeY = maxY - minY;
             rangeX = maxX - minX;
+
+            centerX = (minX + maxX) / 2d;
+            centerY = (minY + maxY) / 2d;
 
             increaseXPerPixel = rangeX / _width;
 
@@ -124,16 +131,21 @@ namespace GraphicalCalculator
 
                 double multiplier = tickDiff > 0 ? Math.Pow(0.9, tickDiff) : Math.Pow(1.1, -1 * tickDiff);
 
-                minX *= multiplier;
-                maxX *= multiplier;
+                int mouseX = Math.Max(Input.mouseState.X, buffer);
+                int mouseY = Math.Max(Input.mouseState.Y, buffer);
 
-                minY *= multiplier;
-                maxY *= multiplier;
+                mouseX = Math.Min(mouseX, _width + buffer);
+                mouseY = Math.Min(mouseY, _height + buffer);
 
-                rangeY = maxY - minY;
-                rangeX = maxX - minX;
+                double mouseXCoord = ConvertCoordToX(mouseX);
+                double mouseYCoord = ConvertCoordToY(mouseY);
+
+                ChangeCenter(mouseXCoord, mouseYCoord, multiplier);
 
                 increaseXPerPixel = rangeX / _width;
+
+
+
 
                 if (Math.Min(majorDivision / rangeX, majorDivision / rangeY) < 1d / 20)
                 {
@@ -147,6 +159,7 @@ namespace GraphicalCalculator
                     minorDivision /= 2;
                 }
 
+                
 
                 updateFunction();
             }
@@ -181,7 +194,7 @@ namespace GraphicalCalculator
             // X = 0
             if (minX < 0 && maxX > 0)
             {
-                float zeroCoord = (float)convertPointX(0);
+                float zeroCoord = (float)ConvertXToCoord(0);
                 Vector2 start = new Vector2(zeroCoord, buffer);
                 Vector2 end = new Vector2(zeroCoord, buffer + _height);
                 DrawLine(start, end, Color.Black);
@@ -190,7 +203,7 @@ namespace GraphicalCalculator
             // Y = 0
             if (minY < 0 && maxY > 0)
             {
-                float zeroCoord = (float)convertPointY(0);
+                float zeroCoord = (float)ConvertYToCoord(0);
                 Vector2 start = new Vector2(buffer, zeroCoord);
                 Vector2 end = new Vector2(buffer + _width, zeroCoord);
                 DrawLine(start, end, Color.Black);
@@ -205,7 +218,7 @@ namespace GraphicalCalculator
                 {
                     if (i == minX || i == 0) continue;
 
-                    float coord = (float)convertPointX(i);
+                    float coord = (float)ConvertXToCoord(i);
                     Vector2 startPos = new Vector2(coord, buffer);
                     Vector2 endPos = new Vector2(coord, buffer + _height);
                     DrawLine(startPos, endPos, Color.Gray);
@@ -218,7 +231,7 @@ namespace GraphicalCalculator
                 {
                     if (i == minY || i == 0) continue;
 
-                    float coord = (float)convertPointY(i);
+                    float coord = (float)ConvertYToCoord(i);
                     Vector2 startPos = new Vector2(buffer, coord);
                     Vector2 endPos = new Vector2(buffer + _width, coord);
                     DrawLine(startPos, endPos, Color.Gray);
@@ -233,7 +246,7 @@ namespace GraphicalCalculator
                 {
                     if (i == minX || i == 0) continue;
 
-                    float coord = (float)convertPointX(i);
+                    float coord = (float)ConvertXToCoord(i);
                     Vector2 startPos = new Vector2(coord, buffer);
                     Vector2 endPos = new Vector2(coord, buffer + _height);
                     DrawLine(startPos, endPos, Color.Gray * 0.25f);
@@ -246,7 +259,7 @@ namespace GraphicalCalculator
                 {
                     if (i == minY || i == 0) continue;
 
-                    float coord = (float)convertPointY(i);
+                    float coord = (float)ConvertYToCoord(i);
                     Vector2 startPos = new Vector2(buffer, coord);
                     Vector2 endPos = new Vector2(buffer + _width, coord);
                     DrawLine(startPos, endPos, Color.Gray * 0.25f);
@@ -263,7 +276,7 @@ namespace GraphicalCalculator
                     DrawLine(start, end, Color.White);
             }
 
-            _spriteBatch.DrawString(font, Input.mouseState.ScrollWheelValue.ToString(), Vector2.Zero, Color.White);
+            _spriteBatch.DrawString(font, $"X: {Input.mouseState.X}\nY: {Input.mouseState.Y}", Vector2.Zero, Color.White);
 
             _spriteBatch.End();
 
@@ -284,26 +297,40 @@ namespace GraphicalCalculator
                 0f);
         }
 
-        internal double convertPointY(double y)
+        internal double ConvertYToCoord(double y)
         {
             double proportion = (y - minY) / rangeY;
 
             return _height + buffer - proportion * _height;
         }
-        internal double convertPointX(double x)
+        internal double ConvertXToCoord(double x)
         {
             double proportion = (x - minX) / rangeX;
 
             return buffer + proportion * _width;
         }
 
-        internal List<Vector2> mathPointsToDrawingPoints(Dictionary<double, double> mathPoints)
+        internal double ConvertCoordToX(double coordX)
+        {
+            double proportion = (coordX - buffer) / _width;
+
+            return minX + proportion * rangeX;
+        }
+
+        internal double ConvertCoordToY(double coordY)
+        {
+            double proportion = (coordY - buffer) / _height;
+
+            return maxY - proportion * rangeY;
+        }
+
+        internal List<Vector2> MathPointsToDrawingPoints(Dictionary<double, double> mathPoints)
         {
             List<Vector2> result = new List<Vector2>();
             foreach(double x in mathPoints.Keys)
             {
                 double y = mathPoints[x];
-                result.Add(new Vector2((float)convertPointX(x), (float)convertPointY(y)));
+                result.Add(new Vector2((float)ConvertXToCoord(x), (float)ConvertYToCoord(y)));
             }
             return result;
         }
@@ -311,8 +338,28 @@ namespace GraphicalCalculator
         internal void updateFunction()
         {
             var mathPoints = Functions.updatePoints(minX, maxX, increaseXPerPixel);
-            points = mathPointsToDrawingPoints(mathPoints);
+            points = MathPointsToDrawingPoints(mathPoints);
             pointsToDraw = points.Where(pt => pt.Y > buffer && pt.Y < (_height + buffer)).ToList();
+        }
+
+        internal void ChangeCenter(double zoomCenterX, double zoomCenterY, double multiplier)
+        {
+            double centerDifferenceX = zoomCenterX - centerX;
+            double centerDifferenceY = zoomCenterY - centerY;
+
+            int zoomMult = multiplier > 1 ? -1 : 1;
+            
+            centerX += zoomMult * centerDifferenceX * 0.1d;
+            centerY += zoomMult * centerDifferenceY * 0.1d;
+
+            maxX = (centerX + (rangeX / 2)) * multiplier;
+            minX = (centerX - (rangeX / 2)) * multiplier;
+
+            maxY = (centerY + (rangeY / 2)) * multiplier;
+            minY = (centerY - (rangeY / 2)) * multiplier;
+
+            rangeX = maxX - minX;
+            rangeY = maxY - minY;
         }
     }
 }

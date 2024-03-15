@@ -119,6 +119,7 @@
             this.minXBox.Name = "minXBox";
             this.minXBox.Size = new System.Drawing.Size(110, 26);
             this.minXBox.TabIndex = 4;
+            this.minXBox.Text = "-5";
             // 
             // maxXBox
             // 
@@ -127,6 +128,7 @@
             this.maxXBox.Name = "maxXBox";
             this.maxXBox.Size = new System.Drawing.Size(110, 26);
             this.maxXBox.TabIndex = 5;
+            this.maxXBox.Text = "5";
             // 
             // minXLabel
             // 
@@ -157,9 +159,9 @@
             this.maxYLabel.ForeColor = System.Drawing.SystemColors.Control;
             this.maxYLabel.Location = new System.Drawing.Point(215, 217);
             this.maxYLabel.Name = "maxYLabel";
-            this.maxYLabel.Size = new System.Drawing.Size(66, 22);
+            this.maxYLabel.Size = new System.Drawing.Size(67, 22);
             this.maxYLabel.TabIndex = 11;
-            this.maxYLabel.Text = "Max X";
+            this.maxYLabel.Text = "Max Y";
             // 
             // minYLabel
             // 
@@ -168,9 +170,9 @@
             this.minYLabel.ForeColor = System.Drawing.SystemColors.Control;
             this.minYLabel.Location = new System.Drawing.Point(215, 185);
             this.minYLabel.Name = "minYLabel";
-            this.minYLabel.Size = new System.Drawing.Size(62, 22);
+            this.minYLabel.Size = new System.Drawing.Size(63, 22);
             this.minYLabel.TabIndex = 10;
-            this.minYLabel.Text = "Min X";
+            this.minYLabel.Text = "Min Y";
             // 
             // maxYBox
             // 
@@ -179,6 +181,7 @@
             this.maxYBox.Name = "maxYBox";
             this.maxYBox.Size = new System.Drawing.Size(110, 26);
             this.maxYBox.TabIndex = 9;
+            this.maxYBox.Text = "5";
             // 
             // minYBox
             // 
@@ -187,6 +190,7 @@
             this.minYBox.Name = "minYBox";
             this.minYBox.Size = new System.Drawing.Size(110, 26);
             this.minYBox.TabIndex = 8;
+            this.minYBox.Text = "-5";
             // 
             // Main
             // 

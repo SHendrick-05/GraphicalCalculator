@@ -34,7 +34,11 @@ namespace GraphicalCalculator
         private bool useMinorDivions;
 
         private double increaseXPerPixel;
-        private double zoomChangeFocusFactor;
+
+        private bool graphClicked;
+        private Vector2 circlePos;
+        private Texture2D circleTexture;
+
 
         private int _width;
         private int _height;
@@ -68,7 +72,6 @@ namespace GraphicalCalculator
             minY = yMin;
             maxY = yMax;
 
-            zoomChangeFocusFactor = 1d / 3d;
 
             _graphics = new GraphicsDeviceManager(this);
             Content.RootDirectory = "Content";
@@ -110,6 +113,8 @@ namespace GraphicalCalculator
 
             rectangle = new Texture2D(GraphicsDevice, 1, 1);
             rectangle.SetData(new[] { Color.White });
+
+            circleTexture = Content.Load<Texture2D>("circle");
 
             font = Content.Load<SpriteFont>("font");
         }
@@ -158,12 +163,57 @@ namespace GraphicalCalculator
                     majorDivision = minorDivision;
                     minorDivision /= 2;
                 }
-
-                
-
                 updateFunction();
             }
             
+
+            if (Input.mouseState.LeftButton == ButtonState.Pressed)
+            {
+
+                if (graphClicked)
+                {
+                    int X = Input.mouseState.X;
+                    int minIndex = 0;
+                    double min = 1000;
+                    for (int i = 0; i < points.Count; i++)
+                    {
+                        double difference = Math.Abs(X - points[i].X);
+                        if (difference < min)
+                        {
+                            min = difference;
+                            minIndex = i;
+                        }
+                    }
+                    circlePos = points[minIndex];
+                }
+                if (Input.prevMouseState.LeftButton == ButtonState.Pressed && !graphClicked)
+                {
+                    double xNum = ConvertCoordToX(Input.mouseState.X);
+                    double prevXNum = ConvertCoordToX(Input.prevMouseState.X);
+
+                    double yNum = ConvertCoordToX(Input.mouseState.Y);
+                    double prevYNum = ConvertCoordToX(Input.prevMouseState.Y);
+
+                    double xNumDiff = (xNum - prevXNum) * -1;
+                    double yNumDiff = yNum - prevYNum;
+
+                    ChangeCenter(centerX + xNumDiff, centerY + yNumDiff, 1, 1);
+
+                    updateFunction();
+                }
+                else
+                {
+                    Vector2 mPos = new Vector2(Input.mouseState.X, Input.mouseState.Y);
+                    Vector2 closestPoint = points.MinBy(v => Vector2.Distance(mPos, v));
+
+                    if (Vector2.Distance(mPos, closestPoint) < 10)
+                        graphClicked = true;
+                }
+            }
+            else if (Input.prevMouseState.LeftButton == ButtonState.Pressed)
+            {
+                graphClicked = false;
+            }
 
             base.Update(gameTime);
         }
@@ -186,10 +236,10 @@ namespace GraphicalCalculator
             DrawLine(BL, TL, Color.Black);
 
             // Labels
-            _spriteBatch.DrawString(font, minX.ToString(), new Vector2(buffer, buffer + _height + 5), Color.Black);
-            _spriteBatch.DrawString(font, maxX.ToString(), new Vector2(_width + buffer, buffer + _height + 5), Color.Black);
-            _spriteBatch.DrawString(font, minY.ToString(), new Vector2(buffer - 15, _height + buffer - 15), Color.Black);
-            _spriteBatch.DrawString(font, maxY.ToString(), new Vector2(buffer - 15, buffer), Color.Black);
+            _spriteBatch.DrawString(font, minX.ToString("G3"), new Vector2(buffer, buffer + _height + 5), Color.Black);
+            _spriteBatch.DrawString(font, maxX.ToString("G3"), new Vector2(_width + buffer, buffer + _height + 5), Color.Black);
+            _spriteBatch.DrawString(font, minY.ToString("G3"), new Vector2(buffer - 15, _height + buffer - 15), Color.Black);
+            _spriteBatch.DrawString(font, maxY.ToString("G3"), new Vector2(buffer - 15, buffer), Color.Black);
 
             // X = 0
             if (minX < 0 && maxX > 0)
@@ -276,6 +326,23 @@ namespace GraphicalCalculator
                     DrawLine(start, end, Color.White);
             }
 
+            // Draw circle on graph
+            if (graphClicked)
+            {
+                float scale = (10f) / circleTexture.Width;
+
+                _spriteBatch.Draw(
+                    circleTexture,
+                    circlePos,
+                    null,
+                    Color.White,
+                    0f,
+                    new Vector2(circleTexture.Width / 2f, circleTexture.Height / 2f),
+                    new Vector2(scale, scale),
+                    SpriteEffects.None,
+                    1f);
+            }
+
             _spriteBatch.DrawString(font, $"X: {Input.mouseState.X}\nY: {Input.mouseState.Y}", Vector2.Zero, Color.White);
 
             _spriteBatch.End();
@@ -339,18 +406,48 @@ namespace GraphicalCalculator
         {
             var mathPoints = Functions.updatePoints(minX, maxX, increaseXPerPixel);
             points = MathPointsToDrawingPoints(mathPoints);
+
+            bool maxFlag = false;
+            bool minFlag = false;
+
+            for(int i = 0; i < points.Count; i++)
+            {
+
+                Vector2 replacement = new Vector2(points[i].X, points[i].Y);
+                if (replacement.Y < buffer && !maxFlag)
+                {
+                    maxFlag = true;
+                    replacement.Y = buffer + 1;
+                }
+                else
+                {
+                    maxFlag = false;
+                }
+
+                if (replacement.Y > (buffer + _height) && !minFlag)
+                {
+                    minFlag = true;
+                    replacement.Y = buffer + _height - 1;
+                }
+                else
+                {
+                    minFlag = false;
+                }
+                points[i] = replacement;
+            }
+
             pointsToDraw = points.Where(pt => pt.Y > buffer && pt.Y < (_height + buffer)).ToList();
         }
 
-        internal void ChangeCenter(double zoomCenterX, double zoomCenterY, double multiplier)
+        internal void ChangeCenter(double zoomCenterX, double zoomCenterY, double multiplier, double easingFactor = 0.1d)
         {
             double centerDifferenceX = zoomCenterX - centerX;
             double centerDifferenceY = zoomCenterY - centerY;
 
             int zoomMult = multiplier > 1 ? -1 : 1;
             
-            centerX += zoomMult * centerDifferenceX * 0.1d;
-            centerY += zoomMult * centerDifferenceY * 0.1d;
+            centerX += zoomMult * centerDifferenceX * easingFactor;
+            centerY += zoomMult * centerDifferenceY * easingFactor;
 
             maxX = (centerX + (rangeX / 2)) * multiplier;
             minX = (centerX - (rangeX / 2)) * multiplier;

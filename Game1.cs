@@ -266,7 +266,7 @@ namespace GraphicalCalculator
                 double startXDiv = Math.Floor(minX / majorDivision) * majorDivision;
                 for (double i = startXDiv; i < maxX; i += majorDivision)
                 {
-                    if (i == minX || i == 0) continue;
+                    if (i <= minX || i == 0) continue;
 
                     float coord = (float)ConvertXToCoord(i);
                     Vector2 startPos = new Vector2(coord, buffer);
@@ -279,7 +279,7 @@ namespace GraphicalCalculator
                 double startYDiv = Math.Floor(minY / majorDivision) * majorDivision;
                 for (double i = startYDiv; i < maxY; i += majorDivision)
                 {
-                    if (i == minY || i == 0) continue;
+                    if (i <= minY || i == 0) continue;
 
                     float coord = (float)ConvertYToCoord(i);
                     Vector2 startPos = new Vector2(buffer, coord);
@@ -294,7 +294,7 @@ namespace GraphicalCalculator
                 double startXDiv = Math.Floor(minX / minorDivision) * minorDivision;
                 for (double i = startXDiv; i < maxX; i += minorDivision)
                 {
-                    if (i == minX || i == 0) continue;
+                    if (i <= minX || i == 0) continue;
 
                     float coord = (float)ConvertXToCoord(i);
                     Vector2 startPos = new Vector2(coord, buffer);
@@ -307,7 +307,7 @@ namespace GraphicalCalculator
                 double startYDiv = Math.Floor(minY / minorDivision) * minorDivision;
                 for (double i = startYDiv; i < maxY; i += minorDivision)
                 {
-                    if (i == minY || i == 0) continue;
+                    if (i <= minY || i == 0) continue;
 
                     float coord = (float)ConvertYToCoord(i);
                     Vector2 startPos = new Vector2(buffer, coord);
@@ -341,9 +341,13 @@ namespace GraphicalCalculator
                     new Vector2(scale, scale),
                     SpriteEffects.None,
                     1f);
+
+                double x = ConvertCoordToX(circlePos.X);
+                double y = ConvertCoordToY(circlePos.Y);
+
+                _spriteBatch.DrawString(font, $"{x.ToString("G3")}, {y.ToString("G3")}", circlePos, Color.White);
             }
 
-            _spriteBatch.DrawString(font, $"X: {Input.mouseState.X}\nY: {Input.mouseState.Y}", Vector2.Zero, Color.White);
 
             _spriteBatch.End();
 
